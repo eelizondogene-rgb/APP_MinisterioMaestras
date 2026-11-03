@@ -1,0 +1,12 @@
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\bin\Debug\net10.0\NinosParaCristo.Domain.deps.json
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\bin\Debug\net10.0\NinosParaCristo.Domain.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\bin\Debug\net10.0\NinosParaCristo.Domain.pdb
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosParaCristo.Domain.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosParaCristo.Domain.AssemblyInfoInputs.cache
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosParaCristo.Domain.AssemblyInfo.cs
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosParaCristo.Domain.csproj.CoreCompileInputs.cache
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosParaCristo.Domain.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\refint\NinosParaCristo.Domain.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosParaCristo.Domain.pdb
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\ref\NinosParaCristo.Domain.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Domain\obj\Debug\net10.0\NinosPar.B9C26067.Up2Date

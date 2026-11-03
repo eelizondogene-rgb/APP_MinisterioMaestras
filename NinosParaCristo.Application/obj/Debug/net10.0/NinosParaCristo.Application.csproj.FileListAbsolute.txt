@@ -1,0 +1,15 @@
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\bin\Debug\net10.0\NinosParaCristo.Application.deps.json
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\bin\Debug\net10.0\NinosParaCristo.Application.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\bin\Debug\net10.0\NinosParaCristo.Application.pdb
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\bin\Debug\net10.0\NinosParaCristo.Domain.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\bin\Debug\net10.0\NinosParaCristo.Domain.pdb
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.csproj.AssemblyReference.cache
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.AssemblyInfoInputs.cache
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.AssemblyInfo.cs
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.csproj.CoreCompileInputs.cache
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosPar.6F6811D4.Up2Date
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\refint\NinosParaCristo.Application.dll
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\NinosParaCristo.Application.pdb
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.Application\obj\Debug\net10.0\ref\NinosParaCristo.Application.dll
