@@ -1,0 +1,13 @@
+**/bin
+**/obj
+.git
+.github
+**/*.user
+**/appsettings.Development.json
+**/.env*
+**/respaldos
+**/*.backup
+**/*.dump
+**/*.zip
+tests
+docs
