@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="NinosParaCristo.API/NinosParaCristo.API.csproj" />
+  <Project Path="NinosParaCristo.Application/NinosParaCristo.Application.csproj" />
+  <Project Path="NinosParaCristo.Domain/NinosParaCristo.Domain.csproj" />
+  <Project Path="NinosParaCristo.Infrastructure/NinosParaCristo.Infrastructure.csproj" />
+</Solution>
