@@ -1,0 +1,26 @@
+services:
+  - type: web
+    name: ministerio-maestras
+    runtime: docker
+    plan: free
+    autoDeployTrigger: off
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_HTTP_PORTS
+        value: "10000"
+      - key: Hosting__HttpsAtProxy
+        value: "true"
+      - key: TZ
+        value: America/Costa_Rica
+      - key: ConnectionStrings__DefaultConnection
+        sync: false
+      - key: Jwt__Key
+        generateValue: true
+      - key: InitialAdmin__Email
+        sync: false
+      - key: InitialAdmin__Password
+        sync: false
+      - key: InitialAdmin__Nombre
+        value: Administradora

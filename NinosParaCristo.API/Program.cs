@@ -10,6 +10,17 @@ using NinosParaCristo.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
+if (!builder.Environment.IsDevelopment())
+{
+    foreach (var setting in new[] { "ConnectionStrings:DefaultConnection", "Jwt:Key", "InitialAdmin:Email", "InitialAdmin:Password" })
+        if (string.IsNullOrWhiteSpace(builder.Configuration[setting]))
+            throw new InvalidOperationException($"Configure {setting} mediante variables de entorno antes de publicar.");
+    if (Encoding.UTF8.GetByteCount(builder.Configuration["Jwt:Key"]!) < 32)
+        throw new InvalidOperationException("Jwt:Key debe tener al menos 32 bytes aleatorios.");
+    if (builder.Configuration["InitialAdmin:Password"]!.Length < 12 || builder.Configuration["InitialAdmin:Password"] == "Admin123!")
+        throw new InvalidOperationException("Configure una contraseña inicial propia de al menos 12 caracteres.");
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
@@ -48,6 +59,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                 if (!string.IsNullOrEmpty(accessToken) && context.HttpContext.Request.Path.StartsWithSegments("/hubs/updates"))
                     context.Token = accessToken;
                 return Task.CompletedTask;
+            },
+            OnTokenValidated = async context =>
+            {
+                var db = context.HttpContext.RequestServices.GetRequiredService<ApplicationDbContext>();
+                if (!await SessionAccess.IsCurrentAsync(db, context.Principal!, context.HttpContext.RequestAborted))
+                    context.Fail("La cuenta está inactiva o sus permisos cambiaron. Inicie sesión de nuevo.");
             }
         };
     });
@@ -61,7 +78,7 @@ var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
     app.MapOpenApi();
-else
+else if (!builder.Configuration.GetValue<bool>("Hosting:HttpsAtProxy"))
     app.UseHttpsRedirection();
 
 app.UseDefaultFiles();
@@ -71,6 +88,8 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+// Readiness: el servidor empieza a escuchar después de inicializar la base.
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapHub<UpdatesHub>("/hubs/updates");
 app.MapFallbackToFile("index.html");
 

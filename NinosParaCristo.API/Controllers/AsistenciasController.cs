@@ -52,6 +52,16 @@ public class AsistenciasController : ControllerBase
     {
         var uid = User.UserId();
 
+        if (dto.Fecha == default || dto.Registros is null || dto.Registros.Count == 0 ||
+            dto.Registros.Any(x => x is null || x.NinoId <= 0 || !x.Presente.HasValue))
+            return BadRequest(new { mensaje = "Indique una fecha y marque presente o ausente para cada registro enviado." });
+        if (dto.Registros.Select(x => x.NinoId).Distinct().Count() != dto.Registros.Count)
+            return BadRequest(new { mensaje = "La lista contiene niños repetidos." });
+
+        var ids = dto.Registros.Select(x => x.NinoId).ToArray();
+        if (await _context.Ninos.CountAsync(x => ids.Contains(x.Id) && x.Activo) != ids.Length)
+            return BadRequest(new { mensaje = "La lista contiene niños inexistentes o inactivos. Vuelva a cargarla." });
+
         if (!User.IsInRole(Roles.Administradora))
         {
             var permitidos = (await NinosPermitidosAsync(dto.Fecha)).Select(x => x.Id).ToHashSet();
@@ -68,7 +78,7 @@ public class AsistenciasController : ControllerBase
                 _context.Asistencias.Add(a);
             }
 
-            a.Presente = r.Presente;
+            a.Presente = r.Presente!.Value;
             a.Observacion = r.Observacion?.Trim();
             a.RegistradaPorUsuarioId = uid;
             a.FechaRegistro = DateTime.UtcNow;

@@ -38,6 +38,7 @@ function saveSession(data){
   localStorage.setItem("npc_token",state.token); localStorage.setItem("npc_user",JSON.stringify(state.user));
 }
 function logout(){
+  if(state.hub){ state.hub.stop().catch(()=>{}); state.hub=null; }
   localStorage.removeItem("npc_token"); localStorage.removeItem("npc_user");
   state.token="";state.user=null;state.page="inicio";
   $("#appView").classList.add("hidden");$("#loginView").classList.remove("hidden");
@@ -73,7 +74,12 @@ async function connectHub(){
   try{
     if(state.hub) await state.hub.stop();
     state.hub=new signalR.HubConnectionBuilder().withUrl("/hubs/updates",{accessTokenFactory:()=>state.token}).withAutomaticReconnect().build();
-    state.hub.on("actualizacion",()=>navigate(state.page));
+    state.hub.on("actualizacion",()=>{
+      if(!state.token) return;
+      // Una actualización remota no debe borrar formularios ni el pase de lista en curso.
+      if(document.querySelector("#content form")) { toast("Hay cambios disponibles. Actualiza después de guardar."); return; }
+      navigate(state.page);
+    });
     await state.hub.start();
   }catch(e){ console.warn("SignalR no disponible",e); }
 }
@@ -175,17 +181,25 @@ pages.aula=async()=>{
 };
 
 pages.asistencia=async()=>{
-  const today=new Date().toISOString().slice(0,10);
+  const now=new Date();
+  const today=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}-${String(now.getDate()).padStart(2,"0")}`;
   $("#content").innerHTML=`<div class="card"><div class="toolbar"><label>Fecha<input id="aFecha" type="date" value="${today}"></label><button id="aCargar">Cargar lista</button></div><div id="aLista"></div></div>`;
   const load=async()=>{
     const fecha=$("#aFecha").value;const [rows,merienda]=await Promise.all([api(`/asistencias?fecha=${fecha}`),api(`/protocolo/merienda?fecha=${fecha}`)]);
     $("#aLista").innerHTML=`<div class="notice"><b>Merienda del día:</b> ${esc(merienda.merienda||"No definida")}</div>${rows.length?`<form id="aForm"><div class="table-wrap"><table><thead><tr><th>Niño</th><th>Grupo</th><th>Alergias</th><th>Presente</th><th>Observación</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr data-id="${r.id}"><td>${esc(r.nombreCompleto)}</td><td>${esc(r.grupo||"—")}</td><td>${esc(r.alergias||"—")}</td><td><input class="check presente" type="checkbox" ${r.presente===true?"checked":""}></td><td><input class="obs" value="${esc(r.observacion||"")}"></td></tr>`).join("")}
+    ${rows.map(r=>`<tr data-id="${r.id}"><td>${esc(r.nombreCompleto)}</td><td>${esc(r.grupo||"—")}</td><td>${esc(r.alergias||"—")}</td><td><select class="presente" aria-label="Asistencia de ${esc(r.nombreCompleto)}" required><option value="" ${r.presente==null?"selected":""}>Sin registrar</option><option value="true" ${r.presente===true?"selected":""}>Presente</option><option value="false" ${r.presente===false?"selected":""}>Ausente</option></select></td><td><input class="obs" maxlength="500" value="${esc(r.observacion||"")}"></td></tr>`).join("")}
     </tbody></table></div><button style="margin-top:14px">Guardar asistencia</button></form>`:`<div class="empty">No hay niños asignados a tus grupos para esta fecha. Revisa el calendario de clases.</div>`}`;
     if(!$("#aForm")) return;
     $("#aForm").onsubmit=async e=>{
-      e.preventDefault();const registros=[...document.querySelectorAll("#aLista tbody tr")].map(tr=>({ninoId:+tr.dataset.id,presente:tr.querySelector(".presente").checked,observacion:tr.querySelector(".obs").value||null}));
-      await api("/asistencias",{method:"POST",body:JSON.stringify({fecha,registros})});toast("Asistencia guardada");
+      e.preventDefault();
+      const form=e.currentTarget;
+      if(!form.reportValidity()) return;
+      if($("#aFecha").value!==fecha){toast("Carga la lista de la fecha seleccionada antes de guardar.");return;}
+      const registros=[...form.querySelectorAll("tbody tr")].map(tr=>({ninoId:+tr.dataset.id,presente:tr.querySelector(".presente").value==="true",observacion:tr.querySelector(".obs").value||null}));
+      const button=form.querySelector("button");button.disabled=true;
+      try{await api("/asistencias",{method:"POST",body:JSON.stringify({fecha,registros})});toast("Asistencia guardada");}
+      catch(err){toast(err.message);}
+      finally{button.disabled=false;}
     };
   };
   $("#aCargar").onclick=load;await load();

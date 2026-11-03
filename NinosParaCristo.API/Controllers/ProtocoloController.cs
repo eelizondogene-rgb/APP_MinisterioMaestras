@@ -13,7 +13,7 @@ namespace NinosParaCristo.API.Controllers;
 
 [ApiController]
 [Route("api/protocolo")]
-[Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo)]
+[Authorize]
 public class ProtocoloController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -35,6 +35,7 @@ public class ProtocoloController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo)]
     public async Task<ActionResult> Get([FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta)
     {
         var d = desde ?? DateOnly.FromDateTime(DateTime.Now.AddMonths(-1));
@@ -150,6 +151,7 @@ public class ProtocoloController : ControllerBase
     }
 
     [HttpPut("{id:int}/bitacora")]
+    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo)]
     public async Task<ActionResult> Bitacora(int id, ActualizarBitacoraDto dto)
     {
         var item = await _context.Protocolos.FindAsync(id);
