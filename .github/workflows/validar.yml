@@ -1,0 +1,18 @@
+name: Validar aplicacion
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - run: dotnet build NinosParaCristo.slnx --configuration Release
+      - run: dotnet run --project tests/Regression/Regression.csproj --configuration Release
+      - run: node --check NinosParaCristo.API/wwwroot/app.js
+      - run: docker build -t ministerio-maestras:validacion .
