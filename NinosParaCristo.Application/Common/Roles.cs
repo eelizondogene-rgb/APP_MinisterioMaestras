@@ -6,5 +6,7 @@ public static class Roles
     public const string MaestraClase = "MaestraClase";
     public const string MaestraProtocolo = "MaestraProtocolo";
 
-    public static readonly string[] Todos = [Administradora, MaestraClase, MaestraProtocolo];
+    public const string MaestraRotativa = "MaestraRotativa";
+
+    public static readonly string[] Todos = [Administradora, MaestraClase, MaestraProtocolo, MaestraRotativa];
 }

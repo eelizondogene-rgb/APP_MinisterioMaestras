@@ -14,8 +14,17 @@ using NinosParaCristo.Application.DTOs.Asistencia;
 using NinosParaCristo.Domain.Entities;
 using NinosParaCristo.Infrastructure.Persistence;
 
-using var db = new ApplicationDbContext(new DbContextOptionsBuilder<ApplicationDbContext>()
-    .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+var options=new DbContextOptionsBuilder<ApplicationDbContext>();
+var connection=Environment.GetEnvironmentVariable("NPC_TEST_POSTGRES");
+if(string.IsNullOrWhiteSpace(connection)) options.UseInMemoryDatabase(Guid.NewGuid().ToString());
+else {
+    var target=new Npgsql.NpgsqlConnectionStringBuilder(connection);
+    if(target.Host!="127.0.0.1" || target.Database is null || !target.Database.StartsWith("npc_regression_"))
+        throw new InvalidOperationException("Las pruebas PostgreSQL solo aceptan una base local npc_regression_.");
+    options.UseNpgsql(connection);
+}
+using var db=new ApplicationDbContext(options.Options);
+await db.Database.EnsureCreatedAsync();
 var user = new Usuario { Id=1, NombreCompleto="Prueba", Email="prueba@example.invalid", PasswordHash="prueba", Rol="Administradora", Activo=true };
 db.Usuarios.Add(user);
 db.Ninos.Add(new Nino { Id=1, NombreCompleto="Prueba ficticia", Activo=true, FechaNacimiento=new DateOnly(2020,1,1) });
@@ -60,7 +69,9 @@ Check(await Allowed("Merienda","MaestraClase"), "Maestra de clase puede consulta
 Check(!await Allowed("Get","MaestraClase"), "Maestra de clase no obtiene el calendario de protocolo");
 Check(!await Allowed("Bitacora","MaestraClase"), "Maestra de clase no modifica bitácoras de protocolo");
 Check(await Allowed("Get","MaestraProtocolo"), "Maestra de protocolo conserva acceso");
-Console.WriteLine($"{count} comprobaciones correctas. Proveedor en memoria; no sustituye las pruebas con PostgreSQL ni navegador.");
+count += await OperacionTests.Run(db);
+count += await ImportacionTests.Run();
+Console.WriteLine($"{count} comprobaciones correctas. Proveedor: {db.Database.ProviderName}. No sustituye pruebas en navegador.");
 
 class EmptyHub : IHubContext<UpdatesHub> {
     public IHubClients Clients { get; }=new EmptyClients();

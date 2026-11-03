@@ -26,7 +26,7 @@ public class ProtocoloController : ControllerBase
     }
 
     [HttpGet("merienda")]
-    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase + "," + Roles.MaestraProtocolo)]
+    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase + "," + Roles.MaestraProtocolo + "," + Roles.MaestraRotativa)]
     public async Task<ActionResult> Merienda([FromQuery] DateOnly fecha)
     {
         var item = await _context.Protocolos.AsNoTracking().Where(x => x.Activo && x.Fecha == fecha)
@@ -35,7 +35,7 @@ public class ProtocoloController : ControllerBase
     }
 
     [HttpGet]
-    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo)]
+    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo + "," + Roles.MaestraRotativa)]
     public async Task<ActionResult> Get([FromQuery] DateOnly? desde, [FromQuery] DateOnly? hasta)
     {
         var d = desde ?? DateOnly.FromDateTime(DateTime.Now.AddMonths(-1));
@@ -70,19 +70,20 @@ public class ProtocoloController : ControllerBase
     [Authorize(Roles = Roles.Administradora)]
     public async Task<ActionResult> Create(GuardarProtocoloDto dto)
     {
-        if (await _context.Protocolos.AnyAsync(x => x.Activo && x.Fecha == dto.Fecha))
+        var error = await ValidarResponsables(dto);
+        if (error is not null) return BadRequest(new { mensaje = error });
+        var existing = await _context.Protocolos.FirstOrDefaultAsync(x => x.Fecha == dto.Fecha);
+        if (existing?.Activo == true)
             return Conflict(new { mensaje = "Ya existe una asignación para esa fecha. Puedes editarla desde el calendario." });
 
-        var item = new ProtocoloSemana
-        {
-            Fecha = dto.Fecha,
-            ResponsableMeriendaId = dto.ResponsableMeriendaId,
-            ResponsableProtocoloId = dto.ResponsableProtocoloId,
-            Merienda = dto.Merienda?.Trim(),
-            Tareas = dto.Tareas?.Trim(),
-            Activo = true
-        };
-        _context.Protocolos.Add(item);
+        var item = existing ?? new ProtocoloSemana();
+        item.Fecha = dto.Fecha;
+        item.ResponsableMeriendaId = dto.ResponsableMeriendaId;
+        item.ResponsableProtocoloId = dto.ResponsableProtocoloId;
+        item.Merienda = dto.Merienda?.Trim();
+        item.Tareas = dto.Tareas?.Trim();
+        item.Activo = true;
+        if (existing is null) _context.Protocolos.Add(item);
         await _context.SaveChangesAsync();
         await _hub.Clients.All.SendAsync("actualizacion", "protocolo");
         return Ok(item);
@@ -92,10 +93,12 @@ public class ProtocoloController : ControllerBase
     [Authorize(Roles = Roles.Administradora)]
     public async Task<ActionResult> Update(int id, GuardarProtocoloDto dto)
     {
+        var error = await ValidarResponsables(dto);
+        if (error is not null) return BadRequest(new { mensaje = error });
         var item = await _context.Protocolos.FindAsync(id);
         if (item is null) return NotFound();
 
-        var duplicado = await _context.Protocolos.AnyAsync(x => x.Id != id && x.Activo && x.Fecha == dto.Fecha);
+        var duplicado = await _context.Protocolos.AnyAsync(x => x.Id != id && x.Fecha == dto.Fecha);
         if (duplicado) return Conflict(new { mensaje = "Ya existe otra asignación para esa fecha." });
 
         item.Fecha = dto.Fecha;
@@ -121,7 +124,7 @@ public class ProtocoloController : ControllerBase
         var fecha = inicio;
         while (fecha.DayOfWeek != DayOfWeek.Sunday) fecha = fecha.AddDays(1);
 
-        var existentes = await _context.Protocolos.Where(x => x.Activo && x.Fecha >= inicio && x.Fecha <= fin)
+        var existentes = await _context.Protocolos.Where(x => x.Fecha >= inicio && x.Fecha <= fin)
             .Select(x => x.Fecha).ToListAsync();
         var set = existentes.ToHashSet();
         var agregados = 0;
@@ -151,7 +154,7 @@ public class ProtocoloController : ControllerBase
     }
 
     [HttpPut("{id:int}/bitacora")]
-    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo)]
+    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraProtocolo + "," + Roles.MaestraRotativa)]
     public async Task<ActionResult> Bitacora(int id, ActualizarBitacoraDto dto)
     {
         var item = await _context.Protocolos.FindAsync(id);
@@ -177,4 +180,17 @@ public class ProtocoloController : ControllerBase
         await _hub.Clients.All.SendAsync("actualizacion", "protocolo");
         return NoContent();
     }
+    private async Task<string?> ValidarResponsables(GuardarProtocoloDto dto)
+    {
+        if (dto.Fecha == default || dto.Fecha.DayOfWeek != DayOfWeek.Sunday)
+            return "Seleccione un domingo válido.";
+        var ids = new[] { dto.ResponsableMeriendaId, dto.ResponsableProtocoloId }
+            .Where(x=>x.HasValue).Select(x=>x!.Value).Distinct().ToArray();
+        if (await _context.Usuarios.CountAsync(x=>ids.Contains(x.Id) && x.Activo && (x.Rol==Roles.MaestraProtocolo || x.Rol==Roles.MaestraRotativa || x.Rol==Roles.Administradora)) != ids.Length)
+            return "Merienda y protocolo requieren responsables activos con rol Maestra de protocolo.";
+        if (await _context.AsignacionesClaseMensuales.AnyAsync(x=>x.Activo && x.Anio==dto.Fecha.Year && x.Mes==dto.Fecha.Month && ids.Contains(x.MaestraId)))
+            return "Una responsable tiene clases asignadas en ese mes. Revise los turnos antes de asignarle protocolo o merienda.";
+        return null;
+    }
+
 }

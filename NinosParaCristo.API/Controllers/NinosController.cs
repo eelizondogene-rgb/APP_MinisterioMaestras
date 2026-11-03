@@ -32,7 +32,7 @@ public class NinosController : ControllerBase
     public async Task<ActionResult> GetAdmin() => Ok(await _service.ObtenerTodosAdminAsync());
 
     [HttpGet("aula")]
-    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase)]
+    [Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase + "," + Roles.MaestraRotativa)]
     public async Task<ActionResult> Aula([FromQuery] DateOnly? fecha)
     {
         if (User.IsInRole(Roles.Administradora))

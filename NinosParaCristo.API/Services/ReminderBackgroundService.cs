@@ -36,7 +36,10 @@ public class ReminderBackgroundService : BackgroundService
                 _logger.LogError(ex, "Error generando recordatorios.");
             }
 
-            await Task.Delay(TimeSpan.FromHours(1), stoppingToken);
+            // Alinear al inicio de cada hora: lunes 15:00 UTC = lunes 09:00 Costa Rica.
+            var now=DateTimeOffset.UtcNow;
+            var next=new DateTimeOffset(now.Year,now.Month,now.Day,now.Hour,0,0,TimeSpan.Zero).AddHours(1);
+            await Task.Delay(next-now, stoppingToken);
         }
     }
 }

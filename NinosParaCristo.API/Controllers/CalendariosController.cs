@@ -13,7 +13,7 @@ namespace NinosParaCristo.API.Controllers;
 
 [ApiController]
 [Route("api/calendarios")]
-[Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase)]
+[Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase + "," + Roles.MaestraRotativa)]
 public class CalendariosController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -79,6 +79,8 @@ public class CalendariosController : ControllerBase
         var grupo = await _context.GruposClase.FindAsync(id);
         if (grupo is null) return NotFound();
 
+        if (await _context.GruposClase.AnyAsync(x => x.Id != id && x.Nombre.ToLower() == dto.Nombre.Trim().ToLower()))
+            return Conflict(new { mensaje = "Ya existe un grupo con ese nombre." });
         grupo.Nombre = dto.Nombre.Trim();
         grupo.EdadMinima = dto.EdadMinima;
         grupo.EdadMaxima = dto.EdadMaxima;
@@ -148,13 +150,11 @@ public class CalendariosController : ControllerBase
         var error = await ValidarAsignacion(dto);
         if (error is not null) return BadRequest(new { mensaje = error });
 
-        var existe = await _context.AsignacionesClaseMensuales.AnyAsync(x =>
-            x.Activo && x.Anio == dto.Anio && x.Mes == dto.Mes &&
-            x.GrupoClaseId == dto.GrupoClaseId && x.MaestraId == dto.MaestraId);
-        if (existe) return Conflict(new { mensaje = "Esa maestra ya está asignada a ese grupo en el mes seleccionado." });
-
-        var item = CrearEntidad(dto);
-        _context.AsignacionesClaseMensuales.Add(item);
+        var item = await _context.AsignacionesClaseMensuales.FirstOrDefaultAsync(x =>
+            x.Anio == dto.Anio && x.Mes == dto.Mes && x.GrupoClaseId == dto.GrupoClaseId && x.MaestraId == dto.MaestraId);
+        if (item?.Activo == true) return Conflict(new { mensaje = "Esa maestra ya está asignada al grupo en ese mes." });
+        if (item is null) { item = CrearEntidad(dto); _context.AsignacionesClaseMensuales.Add(item); }
+        else { item.Activo = true; item.Tema = dto.Tema?.Trim(); item.MaterialUrl = dto.MaterialUrl?.Trim(); item.Observaciones = dto.Observaciones?.Trim(); }
         await _context.SaveChangesAsync();
         await _hub.Clients.All.SendAsync("actualizacion", "calendarios");
         return Ok(item);
@@ -170,7 +170,7 @@ public class CalendariosController : ControllerBase
         var item = await _context.AsignacionesClaseMensuales.FindAsync(id);
         if (item is null) return NotFound();
 
-        var duplicada = await _context.AsignacionesClaseMensuales.AnyAsync(x => x.Id != id && x.Activo &&
+        var duplicada = await _context.AsignacionesClaseMensuales.AnyAsync(x => x.Id != id &&
             x.Anio == dto.Anio && x.Mes == dto.Mes && x.GrupoClaseId == dto.GrupoClaseId && x.MaestraId == dto.MaestraId);
         if (duplicada) return Conflict(new { mensaje = "Ya existe esa asignación." });
 
@@ -203,39 +203,47 @@ public class CalendariosController : ControllerBase
     [Authorize(Roles = Roles.Administradora)]
     public async Task<ActionResult> CargaTrimestral(List<GuardarAsignacionClaseMensualDto> asignaciones)
     {
-        var agregadas = 0;
-        var omitidas = 0;
-
+        if (asignaciones is null || asignaciones.Count == 0 || asignaciones.Count > 500)
+            return BadRequest(new { mensaje = "Envíe entre 1 y 500 asignaciones." });
+        // Validar todo antes de cambiar entidades: un error no guarda una carga parcial.
         foreach (var dto in asignaciones)
         {
             var error = await ValidarAsignacion(dto);
-            if (error is not null) { omitidas++; continue; }
-
-            var existe = await _context.AsignacionesClaseMensuales.AnyAsync(x =>
-                x.Activo && x.Anio == dto.Anio && x.Mes == dto.Mes &&
-                x.GrupoClaseId == dto.GrupoClaseId && x.MaestraId == dto.MaestraId);
-            if (existe) { omitidas++; continue; }
-
-            _context.AsignacionesClaseMensuales.Add(CrearEntidad(dto));
+            if (error is not null) return BadRequest(new { mensaje = error });
+        }
+        var agregadas = 0;
+        var omitidas = 0;
+        var seen = new HashSet<(int, int, int, int)>();
+        foreach (var dto in asignaciones)
+        {
+            if (!seen.Add((dto.Anio,dto.Mes,dto.GrupoClaseId,dto.MaestraId))) { omitidas++; continue; }
+            var item = await _context.AsignacionesClaseMensuales.FirstOrDefaultAsync(x =>
+                x.Anio==dto.Anio && x.Mes==dto.Mes && x.GrupoClaseId==dto.GrupoClaseId && x.MaestraId==dto.MaestraId);
+            if (item?.Activo == true) { omitidas++; continue; }
+            if (item is null) _context.AsignacionesClaseMensuales.Add(CrearEntidad(dto));
+            else { item.Activo=true; item.Tema=dto.Tema?.Trim(); item.MaterialUrl=dto.MaterialUrl?.Trim(); item.Observaciones=dto.Observaciones?.Trim(); }
             agregadas++;
         }
-
         if (agregadas > 0)
         {
             await _context.SaveChangesAsync();
             await _hub.Clients.All.SendAsync("actualizacion", "calendarios");
         }
-
         return Ok(new { agregadas, omitidas });
     }
 
     private async Task<string?> ValidarAsignacion(GuardarAsignacionClaseMensualDto dto)
     {
+        if (dto is null) return "Asignación inválida.";
+        if (dto.Anio is < 2020 or > 2100) return "El año no es válido.";
         if (dto.Mes is < 1 or > 12) return "El mes no es válido.";
         if (!await _context.GruposClase.AnyAsync(x => x.Id == dto.GrupoClaseId && x.Activo))
             return "El grupo de clase no es válido.";
-        if (!await _context.Usuarios.AnyAsync(x => x.Id == dto.MaestraId && x.Activo && x.Rol == Roles.MaestraClase))
+        if (!await _context.Usuarios.AnyAsync(x => x.Id == dto.MaestraId && x.Activo && (x.Rol == Roles.MaestraClase || x.Rol == Roles.MaestraRotativa || x.Rol == Roles.Administradora)))
             return "La maestra seleccionada no tiene el rol Maestra de clase.";
+        if (await _context.Protocolos.AnyAsync(x=>x.Activo && x.Fecha.Year==dto.Anio && x.Fecha.Month==dto.Mes &&
+            (x.ResponsableMeriendaId==dto.MaestraId || x.ResponsableProtocoloId==dto.MaestraId)))
+            return "Esta maestra ya tiene merienda o protocolo en ese mes. Revise los turnos antes de asignarle clases.";
         return null;
     }
 

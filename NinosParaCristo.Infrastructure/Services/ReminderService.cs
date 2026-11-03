@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NinosParaCristo.Application.Common;
 using NinosParaCristo.Domain.Entities;
 using NinosParaCristo.Infrastructure.Persistence;
 
@@ -7,94 +8,77 @@ namespace NinosParaCristo.Infrastructure.Services;
 public class ReminderService
 {
     private readonly ApplicationDbContext _context;
-    public ReminderService(ApplicationDbContext context) => _context = context;
+    private readonly TimeProvider _clock;
+    public ReminderService(ApplicationDbContext context, TimeProvider? clock = null)
+    { _context = context; _clock = clock ?? TimeProvider.System; }
+
+    // Costa Rica utiliza UTC-6 todo el año. No depende de la zona del servidor.
+    public static DateOnly? TargetSunday(DateTimeOffset utcNow)
+    {
+        var local = utcNow.ToOffset(TimeSpan.FromHours(-6));
+        if (local.DayOfWeek == DayOfWeek.Sunday ||
+            (local.DayOfWeek == DayOfWeek.Monday && local.Hour < 9)) return null;
+        return DateOnly.FromDateTime(local.DateTime).AddDays(7 - (int)local.DayOfWeek);
+    }
 
     public async Task<int> GenerateAsync()
     {
-        var hoy = DateOnly.FromDateTime(DateTime.UtcNow.Date);
-        var targetDate = hoy.AddDays(7);
-        var created = 0;
-
-        // Las clases se organizan por mes y grupo. Como el ministerio trabaja los domingos,
-        // el recordatorio de clase se genera exactamente una semana antes de cada domingo.
-        if (targetDate.DayOfWeek == DayOfWeek.Sunday)
+        var now = _clock.GetUtcNow().UtcDateTime;
+        var target = TargetSunday(_clock.GetUtcNow());
+        var desired = new Dictionary<string, Notificacion>();
+        void Add(string key, int userId, string title, string message, string type)
         {
-            var asignaciones = await _context.AsignacionesClaseMensuales.AsNoTracking()
-                .Include(x => x.GrupoClase)
-                .Where(x => x.Activo && x.Anio == targetDate.Year && x.Mes == targetDate.Month && x.GrupoClase.Activo)
-                .ToListAsync();
-
-            foreach (var a in asignaciones)
+            desired[key] = new Notificacion {
+                ClaveUnica=key, UsuarioId=userId, Titulo=title, Mensaje=message.Length<=1000?message:"Tienes una asignación para el próximo domingo. Consulta todos los detalles en tu calendario.",
+                Tipo=type, FechaProgramada=now, FechaCreacion=now, Enviada=false
+            };
+        }
+        if (target is DateOnly date)
+        {
+            var assignments = await _context.AsignacionesClaseMensuales.AsNoTracking()
+                .Include(x=>x.GrupoClase).Include(x=>x.Maestra)
+                .Where(x=>x.Activo && x.Anio==date.Year && x.Mes==date.Month &&
+                    x.GrupoClase.Activo && x.Maestra.Activo && (x.Maestra.Rol==Roles.MaestraClase || x.Maestra.Rol==Roles.MaestraRotativa || x.Maestra.Rol==Roles.Administradora)).ToListAsync();
+            foreach (var a in assignments)
             {
-                var key = $"clase:{a.Id}:{targetDate:yyyyMMdd}:7d";
-                if (await _context.Notificaciones.AnyAsync(x => x.ClaveUnica == key)) continue;
-
-                var material = string.IsNullOrWhiteSpace(a.MaterialUrl)
-                    ? "El material todavía no tiene enlace asignado."
-                    : $"Material: {a.MaterialUrl}";
-
-                _context.Notificaciones.Add(new Notificacion
-                {
-                    UsuarioId = a.MaestraId,
-                    Titulo = $"Clase de {a.GrupoClase.Nombre} · próximo domingo",
-                    Mensaje = $"El domingo {targetDate:dd/MM/yyyy} tienes asignado el grupo {a.GrupoClase.Nombre} ({a.GrupoClase.EdadMinima}-{a.GrupoClase.EdadMaxima} años). {material}",
-                    Tipo = "TurnoClase",
-                    FechaProgramada = DateTime.UtcNow,
-                    FechaCreacion = DateTime.UtcNow,
-                    Enviada = false,
-                    ClaveUnica = key
-                });
-                created++;
+                var material=string.IsNullOrWhiteSpace(a.MaterialUrl)?"Material pendiente.":$"Material: {a.MaterialUrl}";
+                Add($"lunes:clase:{a.Id}:{a.MaestraId}:{date:yyyyMMdd}",a.MaestraId,
+                    $"Clase de {a.GrupoClase.Nombre} · próximo domingo",
+                    $"El domingo {date:dd/MM/yyyy} tienes asignado el grupo {a.GrupoClase.Nombre}. {material}","TurnoClase");
+            }
+            var staff = await _context.Usuarios.AsNoTracking()
+                .Where(x=>x.Activo && (x.Rol==Roles.MaestraProtocolo || x.Rol==Roles.MaestraRotativa || x.Rol==Roles.Administradora)).Select(x=>x.Id).ToListAsync();
+            var protocols=await _context.Protocolos.AsNoTracking().Where(x=>x.Activo && x.Fecha==date).ToListAsync();
+            foreach(var p in protocols)
+            {
+                if(p.ResponsableMeriendaId is int snack && staff.Contains(snack))
+                    Add($"lunes:merienda:{p.Id}:{snack}:{date:yyyyMMdd}",snack,"Recordatorio de merienda",
+                        $"El domingo {date:dd/MM/yyyy} tienes asignada la merienda: {p.Merienda ?? "por definir"}.","Merienda");
+                if(p.ResponsableProtocoloId is int protocol && staff.Contains(protocol))
+                    Add($"lunes:protocolo:{p.Id}:{protocol}:{date:yyyyMMdd}",protocol,"Recordatorio de protocolo",
+                        $"El domingo {date:dd/MM/yyyy} tienes tareas de protocolo: {p.Tareas ?? "por definir"}.","Protocolo");
             }
         }
 
-        var protocolos = await _context.Protocolos.AsNoTracking()
-            .Where(x => x.Activo && x.Fecha == targetDate).ToListAsync();
-
-        foreach (var p in protocolos)
+        // Conservar historial enviado; retirar pendientes cancelados, vencidos o de la versión anterior.
+        var managed=await _context.Notificaciones.Where(x=>x.ClaveUnica!=null &&
+            (x.ClaveUnica.StartsWith("lunes:") || x.ClaveUnica.StartsWith("clase:") ||
+             x.ClaveUnica.StartsWith("merienda:") || x.ClaveUnica.StartsWith("protocolo:"))).ToListAsync();
+        foreach(var old in managed.Where(x=>!x.Enviada && !desired.ContainsKey(x.ClaveUnica!)))
+            _context.Notificaciones.Remove(old);
+        var count=0;
+        foreach(var pair in desired)
         {
-            if (p.ResponsableMeriendaId.HasValue)
+            var existing=managed.FirstOrDefault(x=>x.ClaveUnica==pair.Key);
+            if(existing is null) { _context.Notificaciones.Add(pair.Value); count++; }
+            else if(existing.Mensaje!=pair.Value.Mensaje || existing.Titulo!=pair.Value.Titulo)
             {
-                var key = $"merienda:{p.Id}:7d";
-                if (!await _context.Notificaciones.AnyAsync(x => x.ClaveUnica == key))
-                {
-                    _context.Notificaciones.Add(new Notificacion
-                    {
-                        UsuarioId = p.ResponsableMeriendaId.Value,
-                        Titulo = "Recordatorio de merienda",
-                        Mensaje = $"El {p.Fecha:dd/MM/yyyy} tienes asignada la merienda: {p.Merienda ?? "por definir"}.",
-                        Tipo = "Merienda",
-                        FechaProgramada = DateTime.UtcNow,
-                        FechaCreacion = DateTime.UtcNow,
-                        Enviada = false,
-                        ClaveUnica = key
-                    });
-                    created++;
-                }
-            }
-
-            if (p.ResponsableProtocoloId.HasValue)
-            {
-                var key = $"protocolo:{p.Id}:7d";
-                if (!await _context.Notificaciones.AnyAsync(x => x.ClaveUnica == key))
-                {
-                    _context.Notificaciones.Add(new Notificacion
-                    {
-                        UsuarioId = p.ResponsableProtocoloId.Value,
-                        Titulo = "Recordatorio de protocolo",
-                        Mensaje = $"El {p.Fecha:dd/MM/yyyy} tienes tareas de protocolo: {p.Tareas ?? "limpieza de pasillos y baños, recepción de la ofrenda y entrega de la merienda"}.",
-                        Tipo = "Protocolo",
-                        FechaProgramada = DateTime.UtcNow,
-                        FechaCreacion = DateTime.UtcNow,
-                        Enviada = false,
-                        ClaveUnica = key
-                    });
-                    created++;
-                }
+                existing.Mensaje=pair.Value.Mensaje; existing.Titulo=pair.Value.Titulo;
+                existing.Enviada=false; existing.Leida=false; existing.FechaProgramada=now;
+                count++;
             }
         }
-
-        if (created > 0) await _context.SaveChangesAsync();
-        return created;
+        await _context.SaveChangesAsync();
+        return count;
     }
 }

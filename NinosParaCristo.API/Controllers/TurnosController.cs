@@ -14,7 +14,7 @@ namespace NinosParaCristo.API.Controllers;
 
 [ApiController]
 [Route("api/turnos")]
-[Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase)]
+[Authorize(Roles = Roles.Administradora + "," + Roles.MaestraClase + "," + Roles.MaestraRotativa)]
 public class TurnosController : ControllerBase
 {
     private readonly ApplicationDbContext _context; private readonly IHubContext<UpdatesHub> _hub;

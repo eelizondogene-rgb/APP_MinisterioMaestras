@@ -1,4 +1,4 @@
-const CACHE = "npc-shell-v3-pwa-push";
+const CACHE = "npc-shell-v4-calendario-2026";
 const ASSETS = [
   "/",
   "/styles.css",
