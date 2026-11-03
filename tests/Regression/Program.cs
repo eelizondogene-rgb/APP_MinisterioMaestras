@@ -71,6 +71,7 @@ Check(!await Allowed("Bitacora","MaestraClase"), "Maestra de clase no modifica b
 Check(await Allowed("Get","MaestraProtocolo"), "Maestra de protocolo conserva acceso");
 count += await OperacionTests.Run(db);
 count += await ImportacionTests.Run();
+count += await ExcelTests.Run();
 Console.WriteLine($"{count} comprobaciones correctas. Proveedor: {db.Database.ProviderName}. No sustituye pruebas en navegador.");
 
 class EmptyHub : IHubContext<UpdatesHub> {

@@ -12,7 +12,7 @@ using NinosParaCristo.Infrastructure.Persistence;
 
 namespace NinosParaCristo.API.Controllers;
 
-[ApiController]
+[NonController] // Carga inicial retirada; se conserva el código para pruebas históricas.
 [Route("api/carga-inicial-2026")]
 [Authorize(Roles=Roles.Administradora)]
 public class CargaInicialController(ApplicationDbContext db, IPasswordHasher hasher) : ControllerBase

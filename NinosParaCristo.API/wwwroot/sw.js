@@ -1,8 +1,10 @@
-const CACHE = "npc-shell-v4-calendario-2026";
+const CACHE = "npc-shell-v5-mobile-excel";
 const ASSETS = [
   "/",
   "/styles.css",
   "/app.js",
+  "/importaciones.js",
+  "/mobile.js",
   "/manifest.webmanifest",
   "/assets/logo-ninos-para-cristo.png",
   "/assets/icon-192.png",

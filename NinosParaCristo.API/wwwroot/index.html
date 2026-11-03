@@ -54,10 +54,10 @@
         <p>Ingresa con la cuenta asignada por la administradora.</p>
         <form id="loginForm">
           <label>Correo electrónico
-            <input id="loginEmail" type="email" value="admin@ninosparacristo.local" autocomplete="username" required>
+            <input id="loginEmail" type="email"  autocomplete="username" required>
           </label>
           <label>Contraseña
-            <input id="loginPassword" type="password" value="Admin123!" autocomplete="current-password" required>
+            <input id="loginPassword" type="password"  autocomplete="current-password" required>
           </label>
           <button type="submit" class="primary-btn">Ingresar</button>
         </form>
@@ -68,7 +68,7 @@
   </section>
 
   <div id="appView" class="app hidden">
-    <aside class="sidebar">
+    <button id="menuBackdrop" class="menu-backdrop hidden" aria-label="Cerrar menú"></button><aside class="sidebar" id="sidebarMenu" aria-label="Navegación"><button id="closeMenu" class="ghost close-menu" aria-label="Cerrar menú">Cerrar ✕</button>
       <div class="brand">
         <img src="/assets/logo-ninos-para-cristo.png" alt="Niños para Cristo" class="sidebar-logo">
         <div class="brand-copy">
@@ -90,7 +90,7 @@
 
     <main>
       <header class="topbar">
-        <button id="menuBtn" class="menu-btn" aria-label="Abrir menú">☰</button>
+        <button id="menuBtn" aria-controls="sidebarMenu" aria-expanded="false" class="menu-btn" aria-label="Abrir menú">☰</button>
         <div class="topbar-copy">
           <span class="eyebrow blue">MINISTERIO NIÑOS PARA CRISTO</span>
           <h2 id="pageTitle">Inicio</h2>
@@ -105,5 +105,7 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
   <script src="/app.js"></script>
+  <script src="/importaciones.js"></script>
+  <script src="/mobile.js"></script>
 </body>
 </html>

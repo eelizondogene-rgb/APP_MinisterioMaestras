@@ -43,6 +43,7 @@ function saveSession(data){
   localStorage.setItem("npc_token",state.token); localStorage.setItem("npc_user",JSON.stringify(state.user));
 }
 function logout(){
+  closeMobileMenu();
   state.credentialsPending=false;
   $("#content").innerHTML="";
   if(state.hub){ state.hub.stop().catch(()=>{}); state.hub=null; }
@@ -55,7 +56,7 @@ function navItems(){
   if(r===roles.admin) return [
     ["inicio","🏠  Inicio"],["ninos","👧  Niños"],["asistencia","📋  Asistencia"],["calendarios","📅  Calendarios de clase"],
     ["protocolo","🥪  Meriendas y protocolo"],["inventario","📦  Inventario"],["reportes","📊  Reportes"],
-    ["cargaInicial","📥  Cargar calendario 2026"],["comunicaciones","💬  Comunicación con padres"],["usuarios","👩‍🏫  Usuarios"],["notificaciones","🔔  Notificaciones"]
+    ["importaciones","📥  Planificar e importar"],["comunicaciones","💬  Comunicación con padres"],["usuarios","👩‍🏫  Usuarios"],["notificaciones","🔔  Notificaciones"]
   ];
   if(r===roles.rotativa) return [["inicio","🏠 Inicio"],["aula","👧 Niños del aula"],["asistencia","✅ Pasar asistencia"],["calendarios","📅 Mis clases"],["protocolo","🥪 Mi protocolo"],["notificaciones","🔔 Notificaciones"]];
   if(r===roles.clase) return [["inicio","🏠  Inicio"],["aula","👧  Niños del aula"],["asistencia","✅  Pasar asistencia"],["calendarios","📅  Mi calendario"],["notificaciones","🔔  Notificaciones"]];
@@ -74,9 +75,10 @@ function buildNav(){
 async function navigate(page){
   if(state.credentialsPending && !confirm("¿Ya guardaste las contraseñas iniciales? Al salir no podrás volver a verlas.")) return;
   state.credentialsPending=false;
-  state.page=page;buildNav();$(".sidebar").classList.remove("open");
+  state.page=page;buildNav();closeMobileMenu();
   const labels=Object.fromEntries(navItems().map(x=>[x[0],x[1]]));$("#pageTitle").textContent=labels[page]||"Inicio";
   $("#content").innerHTML='<div class="card">Cargando...</div>';
+  window.scrollTo({top:0,behavior:"instant"});
   try{ await pages[page](); }catch(e){ $("#content").innerHTML=`<div class="card"><b>Error:</b> ${esc(e.message)}</div>`; }
 }
 async function connectHub(){
@@ -85,7 +87,7 @@ async function connectHub(){
     if(state.hub) await state.hub.stop();
     state.hub=new signalR.HubConnectionBuilder().withUrl("/hubs/updates",{accessTokenFactory:()=>state.token}).withAutomaticReconnect().build();
     state.hub.on("actualizacion",()=>{
-      if(!state.token || state.credentialsPending) return;
+      if(!state.token || state.credentialsPending || state.page==="importaciones") return;
       // Una actualización remota no debe borrar formularios ni el pase de lista en curso.
       if(document.querySelector("#content form")) { toast("Hay cambios disponibles. Actualiza después de guardar."); return; }
       navigate(state.page);
@@ -110,7 +112,7 @@ $("#loginForm").addEventListener("submit",async e=>{
   }catch(err){toast(err.message);}
 });
 $("#logoutBtn").onclick=logout;
-$("#menuBtn").onclick=()=>$(".sidebar").classList.toggle("open");
+$("#menuBtn").onclick=()=>openMobileMenu();
 $("#refreshBtn").onclick=()=>navigate(state.page);
 
 const pages={};
@@ -251,7 +253,7 @@ pages.calendarios=async()=>{
   <div class="calendar-poster" id="printArea"><div class="calendar-heading"><img src="/assets/logo-ninos-para-cristo.png" alt="Niños para Cristo"><div><span class="eyebrow blue">CALENDARIOS MINISTERIO NIÑOS PARA CRISTO</span><h3>División de clases ${state.calYear}</h3><p>Trimestre ${state.calQuarter} · organización por grupo, rango de edad y maestras</p></div></div>
     <div class="table-wrap calendar-matrix"><table><thead><tr><th>Grupo</th>${mesesTri.map(m=>`<th>${meses[m-1]}</th>`).join("")}</tr></thead><tbody>${matrix}</tbody></table></div>
   </div>
-  <div class="card print-hide" style="margin-top:16px"><h3>➕ Asignar maestra a un grupo</h3><p class="muted">Si un grupo tiene dos maestras en el mes, guarda una asignación para cada una.</p><form id="calForm" class="form-grid">
+  <div class="card print-hide" style="margin-top:16px"><button type="button" class="ghost" onclick="navigate('importaciones')">📅 Planificar varios grupos o importar Excel</button><h3>➕ Asignar maestra a un grupo</h3><p class="muted">Si un grupo tiene dos maestras en el mes, guarda una asignación para cada una.</p><form id="calForm" class="form-grid">
     <label>Año<input id="cAnio" type="number" min="2020" max="2100" value="${state.calYear}" required></label>
     <label>Mes<select id="cMes">${meses.map((x,i)=>`<option value="${i+1}" ${i+1===mesesTri[0]?"selected":""}>${x}</option>`).join("")}</select></label>
     <label>Período<select id="cPeriodo"><option value="mes">Solo el mes elegido</option><option value="trimestre">Trimestre del mes elegido</option><option value="anio">Todo el año elegido</option></select></label>
@@ -311,7 +313,7 @@ pages.protocolo=async()=>{
   $("#content").innerHTML=`<div class="card print-hide"><div class="toolbar">
     <label>Año<input id="proAnio" type="number" value="${state.proYear}" min="2020" max="2100"></label>
     <label>Trimestre<select id="proTri">${[1,2,3,4].map(t=>`<option value="${t}" ${t===state.proQuarter?"selected":""}>Trimestre ${t}</option>`).join("")}</select></label>
-    <button id="proVer">Ver</button><button id="proGenerar" class="ghost">✨ Preparar domingos</button><button class="ghost" onclick="window.print()">🖨️ Imprimir / guardar PDF</button>
+    <button id="proVer">Ver</button><button id="proGenerar" class="ghost">✨ Preparar domingos</button><button class="ghost" onclick="navigate('importaciones')">Planificar o importar Excel</button><button class="ghost" onclick="window.print()">🖨️ Imprimir / guardar PDF</button>
   </div></div>
   <div class="calendar-poster"><div class="calendar-heading"><img src="/assets/logo-ninos-para-cristo.png" alt="Niños para Cristo"><div><span class="eyebrow pink">CALENDARIO DE PROTOCOLO</span><h3>Meriendas y protocolo</h3><p>${state.proYear} · Trimestre ${state.proQuarter}</p></div></div>
     <div class="table-wrap"><table><thead><tr><th>Domingo</th><th>Merienda</th><th>Responsable merienda</th><th>Protocolo</th><th>Tareas</th><th>Estado</th><th class="print-hide"></th></tr></thead><tbody>
@@ -374,7 +376,7 @@ pages.comunicaciones=async()=>{
 
 pages.usuarios=async()=>{
   const users=await api("/usuarios");
-  $("#content").innerHTML=`<div class="card"><h3>Crear usuario</h3><form id="uForm" class="form-grid">
+  $("#content").innerHTML=`<div class="card"><button class="ghost" onclick="navigate('importaciones')">Importar varias maestras desde Excel</button><h3>Crear usuario</h3><form id="uForm" class="form-grid">
     <label>Nombre completo<input id="uNombre" required></label><label>Correo<input id="uEmail" type="email" required></label>
     <label>Contraseña temporal<input id="uPass" type="password" minlength="8" required></label><label>Rol<select id="uRol"><option value="${roles.clase}">Maestra de clase</option><option value="${roles.protocolo}">Maestra de protocolo</option><option value="${roles.rotativa}">Maestra con rotación de función</option><option value="${roles.admin}">Administradora</option></select></label>
     <div class="full"><button>Crear usuario</button></div>
@@ -382,43 +384,6 @@ pages.usuarios=async()=>{
   $("#uForm").onsubmit=async e=>{e.preventDefault();await api("/usuarios",{method:"POST",body:JSON.stringify({nombreCompleto:$("#uNombre").value,email:$("#uEmail").value,password:$("#uPass").value,rol:$("#uRol").value})});toast("Usuario creado");navigate("usuarios");};
 };
 window.resetPass=async id=>{const p=prompt("Nueva contraseña (mínimo 8 caracteres)");if(!p)return;await api(`/usuarios/${id}/password`,{method:"PUT",body:JSON.stringify({password:p})});toast("Contraseña actualizada");};
-
-pages.cargaInicial=async()=>{
-  const data=await api("/carga-inicial-2026");
-  const etiquetas={MaestraClase:"Clase",MaestraProtocolo:"Protocolo / merienda",MaestraRotativa:"Clase y protocolo en meses distintos"};
-  $("#content").innerHTML=`<div class="card"><h3>Cargar maestras y calendario de noviembre y diciembre de 2026</h3>
-    <p>Se registran las 18 maestras de la imagen y se cargan 12 asignaciones de clase y 9 fechas de protocolo. Rebeca usa una sola cuenta. Isabel y Abigail quedan registradas sin turnos en estos dos meses.</p>
-    <p>No se asignan meriendas ni horas de clase porque no aparecen en la imagen. Si Genesis usa tu cuenta administradora, escribe el correo de esa cuenta en su fila; conservará sus permisos.</p>
-    <form id="cargaInicialForm"><div class="table-wrap"><table><thead><tr><th>Maestra</th><th>Función</th><th>Correo para iniciar sesión</th></tr></thead><tbody>
-    ${data.maestras.map(m=>`<tr data-nombre="${esc(m.nombre)}"><td>${esc(m.nombre)}</td><td>${esc(etiquetas[m.rol]||m.rol)}</td><td><input type="email" autocomplete="off" aria-label="Correo de ${esc(m.nombre)}" required maxlength="200"></td></tr>`).join("")}
-    </tbody></table></div><p>Si una cuenta ya existe, usa su mismo correo. Las cuentas nuevas reciben contraseñas aleatorias; no se envían correos automáticamente.</p>
-    <button type="submit">Crear cuentas y cargar noviembre y diciembre</button></form></div>
-    <div class="card" style="margin-top:16px"><h3>Clases que se cargarán</h3><div class="table-wrap"><table><thead><tr><th>Mes</th><th>Grupo</th><th>Maestra</th></tr></thead><tbody>${data.clases.map(c=>`<tr><td>${meses[c.mes-1]}</td><td>${esc(c.grupo)}</td><td>${esc(c.maestra)}</td></tr>`).join("")}</tbody></table></div></div>
-    <div class="card" style="margin-top:16px"><h3>Protocolo que se cargará</h3>${data.protocolos.map(p=>`<p>${dateFmt(p.fecha)} · ${esc(p.responsable)}</p>`).join("")}</div>`;
-  $("#cargaInicialForm").onsubmit=async event=>{
-    event.preventDefault();
-    const form=event.currentTarget;
-    if(!form.reportValidity()) return;
-    const cuentas=[...form.querySelectorAll("tbody tr")].map(tr=>({nombre:tr.dataset.nombre,email:tr.querySelector("input").value.trim()}));
-    if(new Set(cuentas.map(c=>c.email.toLowerCase())).size!==cuentas.length){toast("Usa un correo diferente para cada persona.");return;}
-    const button=form.querySelector("button");button.disabled=true;
-    try {
-      const result=await api("/carga-inicial-2026",{method:"POST",body:JSON.stringify(cuentas)});
-      state.credentialsPending=result.credenciales.length>0;
-      $("#content").innerHTML=`<div class="card"><h3>Calendario cargado</h3><p>${result.cuentasCreadas} cuentas nuevas. Revisa Calendarios de clase y Meriendas y protocolo.</p>
-        <p>Guarda las credenciales antes de salir de esta pantalla y entrega a cada maestra únicamente las suyas. Las contraseñas existentes no se cambian.</p>
-        <button id="guardarCredenciales">Descargar credenciales de cuentas nuevas</button>
-        <div class="table-wrap"><table><thead><tr><th>Nombre</th><th>Correo</th><th>Contraseña inicial</th></tr></thead><tbody>${result.credenciales.map(c=>`<tr><td>${esc(c.nombre)}</td><td>${esc(c.email)}</td><td><code>${esc(c.password)}</code></td></tr>`).join("")}</tbody></table></div>
-        <p>Si perdiste una contraseña, puedes restablecerla desde Usuarios. No necesitas volver a cargar el calendario.</p></div>`;
-      $("#guardarCredenciales").onclick=()=>{
-        const text=result.credenciales.map(c=>c.nombre+"\nCorreo: "+c.email+"\nContraseña inicial: "+c.password).join("\n\n");
-        const url=URL.createObjectURL(new Blob([text],{type:"text/plain;charset=utf-8"}));
-        const link=document.createElement("a");link.href=url;link.download="credenciales-maestras-privado.txt";link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
-        state.credentialsPending=false;
-      };
-    } catch(error){toast(error.message);} finally{button.disabled=false;}
-  };
-};
 
 pages.notificaciones=async()=>{
   const rows=await api("/notificaciones/mias");
@@ -573,4 +538,4 @@ document.addEventListener("DOMContentLoaded",async()=>{
   await refreshPwaButtons();
 });
 
-if(state.token && state.user) appStart();
+if(state.token && state.user) window.addEventListener("DOMContentLoaded",appStart);
