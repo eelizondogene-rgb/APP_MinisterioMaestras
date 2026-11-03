@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#238bd2">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Niños para Cristo">
+  <meta name="description" content="Sistema de gestión del Ministerio Niños para Cristo">
+  <title>Niños para Cristo · Sistema de Gestión</title>
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="48x48" href="/assets/favicon-48.png">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div id="toast"></div>
+
+  <div id="iosInstallModal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="iosInstallTitle">
+    <div class="install-modal">
+      <button id="closeInstallModal" class="modal-close" aria-label="Cerrar">×</button>
+      <img src="/assets/icon-192.png" alt="Niños para Cristo" class="install-app-icon">
+      <h3 id="iosInstallTitle">Instalar Niños para Cristo</h3>
+      <p>En iPhone o iPad, instala la aplicación desde Safari:</p>
+      <ol class="install-steps">
+        <li>Toca <strong>Compartir</strong> <span class="ios-share-icon">⇧</span>.</li>
+        <li>Selecciona <strong>Agregar a pantalla de inicio</strong>.</li>
+        <li>Abre Niños para Cristo desde el nuevo ícono.</li>
+        <li>Dentro de la app toca <strong>Activar notificaciones</strong>.</li>
+      </ol>
+      <button id="closeInstallModal2" class="primary-btn">Entendido</button>
+    </div>
+  </div>
+
+  <section id="loginView" class="login-wrap">
+    <div class="login-shell">
+      <div class="login-brand-panel">
+        <img src="/assets/logo-ninos-para-cristo.png" alt="Ministerio Niños para Cristo" class="login-logo">
+        <div class="login-title-block">
+          <span class="eyebrow">COMUNIDAD CRISTIANA POZOS DE AGUA VIVA</span>
+          <h1>Sistema de Gestión</h1>
+          <p>Asistencia, información infantil y calendarización de maestras.</p>
+        </div>
+        <div class="verse-card">“Instruye al niño en su camino, y aun cuando fuere viejo no se apartará de él.” <strong>Proverbios 22:6</strong></div>
+      </div>
+
+      <div class="login-card">
+        <div class="mobile-login-logo-wrap">
+          <img src="/assets/logo-ninos-para-cristo.png" alt="Niños para Cristo" class="mobile-login-logo">
+        </div>
+        <span class="eyebrow pink">ACCESO AL SISTEMA</span>
+        <h2>¡Bienvenida! 👋</h2>
+        <p>Ingresa con la cuenta asignada por la administradora.</p>
+        <form id="loginForm">
+          <label>Correo electrónico
+            <input id="loginEmail" type="email" value="admin@ninosparacristo.local" autocomplete="username" required>
+          </label>
+          <label>Contraseña
+            <input id="loginPassword" type="password" value="Admin123!" autocomplete="current-password" required>
+          </label>
+          <button type="submit" class="primary-btn">Ingresar</button>
+        </form>
+        <small>La contraseña inicial debe cambiarse después de crear los usuarios reales.</small>
+        <button id="loginInstallBtn" type="button" class="ghost install-login-btn">📲 Instalar aplicación</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="appView" class="app hidden">
+    <aside class="sidebar">
+      <div class="brand">
+        <img src="/assets/logo-ninos-para-cristo.png" alt="Niños para Cristo" class="sidebar-logo">
+        <div class="brand-copy">
+          <strong>Niños para Cristo</strong>
+          <span id="roleLabel"></span>
+        </div>
+      </div>
+      <nav id="nav"></nav>
+      <div class="sidebar-footer">
+        <div class="pwa-actions">
+          <button id="installBtn" class="ghost">📲 Instalar app</button>
+          <button id="pushBtn" class="ghost">🔔 Activar notificaciones</button>
+          <button id="pushTestBtn" class="ghost hidden">🧪 Probar notificación</button>
+        </div>
+        <div class="security-note">🔒 Información protegida por rol</div>
+        <button id="logoutBtn" class="ghost danger">Cerrar sesión</button>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <button id="menuBtn" class="menu-btn" aria-label="Abrir menú">☰</button>
+        <div class="topbar-copy">
+          <span class="eyebrow blue">MINISTERIO NIÑOS PARA CRISTO</span>
+          <h2 id="pageTitle">Inicio</h2>
+          <p id="userLabel"></p>
+        </div>
+        <button id="refreshBtn" class="ghost refresh-btn">↻ <span>Actualizar</span></button>
+      </header>
+      <section id="content" class="content"></section>
+      <footer class="app-footer">Organizados para servir con amor y excelencia. 💗</footer>
+    </main>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

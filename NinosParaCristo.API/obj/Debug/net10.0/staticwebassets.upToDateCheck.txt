@@ -1,0 +1,16 @@
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.API\wwwroot\manifest.webmanifest
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.API\wwwroot\app.js
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.API\wwwroot\styles.css
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.API\wwwroot\sw.js
+C:\Users\eeliz\OneDrive - Universidad Fidélitas\Carrera ( Ingeniería en Sistemas de Información)\TCU\NinosParaCristo.API\wwwroot\index.html
+wwwroot\app.js
+wwwroot\assets\apple-touch-icon.png
+wwwroot\assets\badge-96.png
+wwwroot\assets\favicon-48.png
+wwwroot\assets\icon-192.png
+wwwroot\assets\icon-512.png
+wwwroot\assets\logo-ninos-para-cristo.png
+wwwroot\index.html
+wwwroot\manifest.webmanifest
+wwwroot\styles.css
+wwwroot\sw.js

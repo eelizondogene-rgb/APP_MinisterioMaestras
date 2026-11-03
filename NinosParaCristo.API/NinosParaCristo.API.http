@@ -1,0 +1,46 @@
+@host = http://localhost:5021
+@token = PEGA_AQUI_EL_TOKEN_DEL_LOGIN
+
+### Login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "admin@ninosparacristo.local",
+  "password": "Admin123!"
+}
+
+### Grupos de clase
+GET {{host}}/api/calendarios/grupos
+Authorization: Bearer {{token}}
+
+### Calendario de clases 2026
+GET {{host}}/api/calendarios/clases?anio=2026
+Authorization: Bearer {{token}}
+
+### Crear asignación mensual
+POST {{host}}/api/calendarios/clases
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "anio": 2026,
+  "mes": 7,
+  "grupoClaseId": 1,
+  "maestraId": 2,
+  "tema": "Clase del mes",
+  "materialUrl": "",
+  "observaciones": ""
+}
+
+### Preparar domingos del tercer trimestre
+POST {{host}}/api/protocolo/generar-domingos?anio=2026&trimestre=3
+Authorization: Bearer {{token}}
+
+### Niños del aula para una fecha
+GET {{host}}/api/ninos/aula?fecha=2026-07-12
+Authorization: Bearer {{token}}
+
+### Asistencia
+GET {{host}}/api/asistencias?fecha=2026-07-12
+Authorization: Bearer {{token}}
